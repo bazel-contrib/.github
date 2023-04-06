@@ -1,5 +1,9 @@
 # Reusable workflow that can be referenced by repositories in their .github/workflows/ci.yaml.
 # See example usage in https://github.com/bazel-contrib/rules-template/blob/main/.github/workflows/ci.yaml
+#
+# This assumes the repo calling the workflow has at least these files:
+# - .github/workflows/ci.bazelrc
+# - .bazelrc
 
 on:
   # Make this workflow reusable, see
@@ -10,7 +14,9 @@ on:
         required: true
         # JSON is needed because list is not supported:
         # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onworkflow_callinputsinput_idtype
-        description: JSON-formatted array of folders like '[".", "e2e/smoke"]'
+        description: |
+          JSON-formatted array of folders to run 'bazel test' in
+          For example, '[".", "e2e/smoke"]'
         type: string
 
 jobs:

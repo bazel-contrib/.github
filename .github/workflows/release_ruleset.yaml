@@ -1,5 +1,10 @@
 # Reusable workflow that can be referenced by repositories in their .github/workflows/release.yaml.
 # See example usage in https://github.com/bazel-contrib/rules-template/blob/main/.github/workflows/release.yaml
+#
+# This assumes the repo calling the workflow has at least these files:
+# - .github/workflows/release_prep.sh
+# - .github/workflows/ci.bazelrc
+# - .bazelrc
 
 on:
   # Make this workflow reusable, see
