@@ -74,6 +74,10 @@ jobs:
           # https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
           - os: macos-latest
             bazelversion: 5.3.2
+          # Don't test Windows with Bazel 5 to minimize Windows minutes (billed at 2X)
+          # https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
+          - os: windows-latest
+            bazelversion: 5.3.2
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
