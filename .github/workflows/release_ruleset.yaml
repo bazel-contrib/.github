@@ -1,0 +1,50 @@
+# Reusable workflow that can be referenced by repositories in their .github/workflows/release.yaml.
+# See example usage in https://github.com/bazel-contrib/rules-template/blob/main/.github/workflows/release.yaml
+#
+# This assumes the repo calling the workflow has at least these files:
+# - .github/workflows/release_prep.sh
+# - .github/workflows/ci.bazelrc
+# - .bazelrc
+
+on:
+  # Make this workflow reusable, see
+  # https://github.blog/2022-02-10-using-reusable-workflows-github-actions
+  workflow_call:
+    inputs:
+      release_files:
+        required: true
+        description: |
+          Newline-delimited globs of paths to assets to upload for release.
+          See https://github.com/softprops/action-gh-release#inputs
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Mount bazel caches
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/bazel
+            ~/.cache/bazel-repo
+          key: bazel-cache-${{ hashFiles('**/BUILD.bazel', '**/*.bzl', 'WORKSPACE') }}
+          restore-keys: bazel-cache-
+      - name: bazel test //...
+        env:
+          # Bazelisk will download bazel to here
+          XDG_CACHE_HOME: ~/.cache/bazel-repo
+        run: bazel --bazelrc=.github/workflows/ci.bazelrc --bazelrc=.bazelrc test //...
+      - name: Prepare release notes and artifacts
+        run: .github/workflows/release_prep.sh ${{ env.GITHUB_REF_NAME }} > release_notes.txt
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          # Use GH feature to populate the changelog automatically
+          generate_release_notes: true
+          body_path: release_notes.txt
+          fail_on_unmatched_files: true
+          files: ${{ inputs.release_files }}
