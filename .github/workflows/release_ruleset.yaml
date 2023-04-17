@@ -17,6 +17,10 @@ on:
           Newline-delimited globs of paths to assets to upload for release.
           See https://github.com/softprops/action-gh-release#inputs
         type: string
+      prerelease:
+        default: true
+        description: Indicator of whether or not is a prerelease
+        type: boolean
 
 jobs:
   build:
@@ -42,7 +46,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          prerelease: true
+          prerelease: ${{ inputs.prerelease }}
           # Use GH feature to populate the changelog automatically
           generate_release_notes: true
           body_path: release_notes.txt
