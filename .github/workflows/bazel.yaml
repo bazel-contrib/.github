@@ -18,6 +18,9 @@ on:
           JSON-formatted array of folders to run 'bazel test' in
           For example, '[".", "e2e/smoke"]'
         type: string
+      exclude_windows:
+        description: Don't run tests on Windows
+        type: boolean
 
 jobs:
   # matrix-prep-* steps generate JSON used to create a dynamic actions matrix.
@@ -34,7 +37,7 @@ jobs:
       - id: windows
         run: echo "os=windows-latest" >> $GITHUB_OUTPUT
         # Only run on main branch (or PR branches that contain 'windows') to minimize Windows minutes (billed at 2X)
-        if: github.ref == 'refs/heads/main' || contains(github.head_ref, 'windows')
+        if: (github.ref == 'refs/heads/main' || contains(github.head_ref, 'windows')) && !inputs.exclude_windows
       - id: macos
         run: echo "os=macos-latest" >> $GITHUB_OUTPUT
         # Only run on main branch (or PR branches that contain 'macos') to minimize macOS minutes (billed at 10X)
