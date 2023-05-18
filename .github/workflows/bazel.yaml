@@ -15,11 +15,29 @@ on:
         # JSON is needed because list is not supported:
         # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onworkflow_callinputsinput_idtype
         description: |
-          JSON-formatted array of folders to run 'bazel test' in
+          JSON-formatted array of folders to run 'bazel test' in.
           For example, '[".", "e2e/smoke"]'
         type: string
+      exclude:
+        description: |
+          JSON-formatted array of exclusions to the generated matrix of tests.
+
+          By default, we don't test bzlmod with Bazel 5 (not supported)
+          and we don't test non-linux with Bazel 5 to minimize macOS and Windows minutes
+          since they are billed at 10X and 2X respectively:
+          https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
+          
+          Note: independent of this setting, we don't create MacOS/Windows matrix entries for pull requests
+          unless they come from a specially-named branch. See logic below.
+        type: string
+        default: |
+          [
+            {"bazelversion": "5.4.0", "bzlmodEnabled": true},
+            {"bazelversion": "5.4.0", "os": "macos-latest"},
+            {"bazelversion": "5.4.0", "os": "windows-latest"}
+          ]
       exclude_windows:
-        description: Don't run tests on Windows
+        description: Don't run any tests on Windows
         type: boolean
 
 jobs:
@@ -54,7 +72,7 @@ jobs:
       - id: bazel_from_bazelversion
         run: echo "bazelversion=$(head -n 1 .bazelversion)" >> $GITHUB_OUTPUT
       - id: bazel_5
-        run: echo "bazelversion=5.3.2" >> $GITHUB_OUTPUT
+        run: echo "bazelversion=5.4.0" >> $GITHUB_OUTPUT
     outputs:
       # Will look like ["<version from .bazelversion>", "5.3.2"]
       bazelversions: ${{ toJSON(steps.*.outputs.bazelversion) }}
@@ -75,18 +93,7 @@ jobs:
         bazelversion: ${{ fromJSON(needs.matrix-prep-bazelversion.outputs.bazelversions) }}
         folder: ${{ fromJSON(inputs.folders) }}
         bzlmodEnabled: [true, false]
-        exclude:
-          # Don't test bzlmod with Bazel 5 (not supported)
-          - bazelversion: 5.3.2
-            bzlmodEnabled: true
-          # Don't test macos with Bazel 5 to minimize macOS minutes (billed at 10X)
-          # https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
-          - os: macos-latest
-            bazelversion: 5.3.2
-          # Don't test Windows with Bazel 5 to minimize Windows minutes (billed at 2X)
-          # https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
-          - os: windows-latest
-            bazelversion: 5.3.2
+        exclude: ${{ fromJSON(inputs.exclude) }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
