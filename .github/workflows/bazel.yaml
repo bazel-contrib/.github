@@ -25,7 +25,10 @@ on:
           By default, we don't test bzlmod with Bazel 5 (not supported)
           and we don't test non-linux with Bazel 5 to minimize macOS and Windows minutes
           since they are billed at 10X and 2X respectively:
-          https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes          
+          https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
+          
+          Note: independent of this setting, we don't create MacOS/Windows matrix entries for pull requests
+          unless they come from a specially-named branch. See logic below.
         type: string
         default: |
           [
