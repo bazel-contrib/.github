@@ -33,12 +33,11 @@ jobs:
         with:
           path: |
             ~/.cache/bazel
-            ~/.cache/bazel-repo
           key: bazel-cache-${{ hashFiles('**/BUILD.bazel', '**/*.bzl', 'WORKSPACE') }}
           restore-keys: bazel-cache-
       - name: bazel test //...
         env:
-          # Bazelisk will download bazel to here
+          # Bazelisk will download bazel to here.
           XDG_CACHE_HOME: ~/.cache/bazel-repo
         run: bazel --bazelrc=.github/workflows/ci.bazelrc --bazelrc=.bazelrc test //...
       - name: Prepare release notes and artifacts
