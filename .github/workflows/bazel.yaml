@@ -4,6 +4,9 @@
 # This assumes the repo calling the workflow has at least these files:
 # - .github/workflows/ci.bazelrc
 # - .bazelrc
+#
+# This workflow uses https://github.com/p0deje/setup-bazel to prepare the cache folders.
+# Caching may be disabled by setting `mount_bazel_caches` to false.
 
 on:
   # Make this workflow reusable, see
@@ -48,13 +51,12 @@ on:
       mount_bazel_caches:
         default: true
         description: |
-          Whether or not to mount the `~/.cache/bazel-disk-cache`, `~/.cache/bazel-repository-cache`,
-          and `~/.cache/xdg-cache-home` folders using the `actions/cache@v3` GitHub Action.
+          Whether or not to run the p0deje/setup-bazel action.
         type: boolean
 
 jobs:
   # matrix-prep-* steps generate JSON used to create a dynamic actions matrix.
-  # Insanely complex for how simple this requirement is inspired from
+  # Inspired from
   # https://stackoverflow.com/questions/65384420/how-to-make-a-github-action-matrix-element-conditional
 
   matrix-prep-os:
@@ -113,30 +115,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Cache build artifacts so that the next ci build is incremental.
-      # Because github action caches cannot be updated after a build, we need to
-      # store the contents of each build in a unique cache key, then fall back to loading
-      # it on the next ci run. We use hashFiles(...) in the key and restore-keys- with
-      # the prefix to load the most recent cache for the branch on a cache miss. You
-      # should customize the contents of hashFiles to capture any bazel input sources,
-      # although this doesn't need to be perfect. If none of the input sources change
-      # then a cache hit will load an existing cache and bazel won't have to do any work.
-      # In the case of a cache miss, you want the fallback cache to contain most of the
-      # previously built artifacts to minimize build time. The more precise you are with
-      # hashFiles sources the less work bazel will have to do.
-      # We do not cache downloaded external artifacts as these are generally
-      # faster to download again than to fetch them from the GitHub actions
-      # cache.
-      - name: Mount bazel caches
-        uses: actions/cache@v3
-        if: ${{ inputs.mount_bazel_caches }}
-        with:
-          path: |
-            ~/.cache/bazel-disk-cache
-            ~/.cache/bazel-repository-cache
-            ~/.cache/xdg-cache-home
-          key: bazel-cache-${{ matrix.os }}-${{ matrix.bazelversion }}-${{ matrix.folder }}-${{ matrix.bzlmodEnabled }}-${{ hashFiles('.bazelrc', '.bazelversion', '.bazeliskrc', '**/BUILD', '**/BUILD.bazel', '**/*.bzl', 'WORKSPACE', 'WORKSPACE.bazel', 'WORKSPACE.bzlmod', 'MODULE.bazel', 'MODULE.bazel.lock') }}
-          restore-keys: bazel-cache-${{ matrix.os }}-${{ matrix.bazelversion }}-${{ matrix.folder }}-${{ matrix.bzlmodEnabled }}-
+      # TODO: change to bazel-contrib after it moves
+      - uses: p0deje/setup-bazel@0.6.0
+        if: inputs.mount_bazel_caches
 
       - name: Configure Bazel version
         working-directory: ${{ matrix.folder }}
@@ -157,10 +138,7 @@ jobs:
 
       - name: Test
         working-directory: ${{ matrix.folder }}
-        run: ${{ inputs.bazel_test_command }} --enable_bzlmod=${{ matrix.bzlmodEnabled }} --disk_cache=~/.cache/bazel-disk-cache --repository_cache=~/.cache/bazel-repository-cache
-        env:
-          # Bazelisk will download bazel to here
-          XDG_CACHE_HOME: ~/.cache/xdg-cache-home
+        run: ${{ inputs.bazel_test_command }} --enable_bzlmod=${{ matrix.bzlmodEnabled }}
 
       - name: Run ./test.sh
         # Run if there is a test.sh file in the folder
