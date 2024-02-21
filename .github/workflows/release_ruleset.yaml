@@ -49,14 +49,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Mount bazel caches
-        # TODO: change to bazel-contrib after it moves
-        uses: p0deje/setup-bazel@0.6.0
-        if: ${{ inputs.mount_bazel_caches }}
+       # TODO: change to bazel-contrib after it moves
+      - uses: p0deje/setup-bazel@0.6.0
         with:
-          disk-cache: true
-          external-cache: true
-          repository-cache: true
+          disk-cache: ${{ inputs.mount_bazel_caches }}
+          external-cache: ${{ inputs.mount_bazel_caches }}
+          repository-cache: ${{ inputs.mount_bazel_caches }}
 
       - name: Test
         run: ${{ inputs.bazel_test_command }} --disk_cache=~/.cache/bazel-disk-cache --repository_cache=~/.cache/bazel-repository-cache

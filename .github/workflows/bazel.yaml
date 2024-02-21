@@ -116,13 +116,11 @@ jobs:
       - uses: actions/checkout@v4
 
       # TODO: change to bazel-contrib after it moves
-      - name: Mount bazel caches
-        uses: p0deje/setup-bazel@0.6.0
-        if: inputs.mount_bazel_caches
+      - uses: p0deje/setup-bazel@0.6.0
         with:
-          disk-cache: true
-          external-cache: true
-          repository-cache: true
+          disk-cache: ${{ inputs.mount_bazel_caches }}
+          external-cache: ${{ inputs.mount_bazel_caches }}
+          repository-cache: ${{ inputs.mount_bazel_caches }}
           bazelrc: common --announce_rc --color=yes --enable_bzlmod=${{ matrix.bzlmodEnabled }}
 
       - name: Configure Bazel version
