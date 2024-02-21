@@ -123,6 +123,7 @@ jobs:
           disk-cache: true
           external-cache: true
           repository-cache: true
+          bazelrc: common --announce_rc --color=yes --enable_bzlmod=${{ matrix.bzlmodEnabled }}
 
       - name: Configure Bazel version
         working-directory: ${{ matrix.folder }}
@@ -143,7 +144,7 @@ jobs:
 
       - name: Test
         working-directory: ${{ matrix.folder }}
-        run: ${{ inputs.bazel_test_command }} --enable_bzlmod=${{ matrix.bzlmodEnabled }}
+        run: ${{ inputs.bazel_test_command }}
 
       - name: Run ./test.sh
         # Run if there is a test.sh file in the folder
