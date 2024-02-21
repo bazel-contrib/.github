@@ -116,8 +116,13 @@ jobs:
       - uses: actions/checkout@v4
 
       # TODO: change to bazel-contrib after it moves
-      - uses: p0deje/setup-bazel@0.6.0
+      - name: Mount bazel caches
+        uses: p0deje/setup-bazel@0.6.0
         if: inputs.mount_bazel_caches
+        with:
+          disk-cache: true
+          external-cache: true
+          repository-cache: true
 
       - name: Configure Bazel version
         working-directory: ${{ matrix.folder }}
