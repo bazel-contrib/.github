@@ -39,7 +39,7 @@ on:
         type: boolean
       prerelease:
         default: true
-        description: Indicator of whether or not is a prerelease
+        description: Indicator of whether or not this is a prerelease.
         type: boolean
 
 jobs:
@@ -49,7 +49,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-       # TODO: change to bazel-contrib after it moves
+        # TODO: change to bazel-contrib after it moves
       - uses: p0deje/setup-bazel@0.6.0
         with:
           disk-cache: ${{ inputs.mount_bazel_caches }}

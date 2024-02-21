@@ -51,7 +51,7 @@ on:
       mount_bazel_caches:
         default: true
         description: |
-          Whether Whether to enable caching in the p0deje/setup-bazel action.
+          Whether to enable caching in the p0deje/setup-bazel action.
         type: boolean
 
 jobs:
