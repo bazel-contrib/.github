@@ -35,7 +35,7 @@ on:
       mount_bazel_caches:
         default: true
         description: |
-          Whether to run the p0deje/setup-bazel action.
+          Whether to enable caching in the p0deje/setup-bazel action.
         type: boolean
       prerelease:
         default: true
