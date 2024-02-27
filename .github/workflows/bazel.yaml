@@ -118,8 +118,6 @@ jobs:
       # TODO: change to bazel-contrib after it moves
       - uses: p0deje/setup-bazel@0.6.0
         with:
-          disk-cache: ${{ inputs.mount_bazel_caches }}
-          external-cache: ${{ inputs.mount_bazel_caches }}
           repository-cache: ${{ inputs.mount_bazel_caches }}
           bazelrc: common --announce_rc --color=yes --enable_bzlmod=${{ matrix.bzlmodEnabled }}
 
