@@ -5,10 +5,8 @@
 # the release. This can be customized with the `release_prep_command` attribute. Release notes are
 # expected to be outputted to stdout from the release prep command.
 #
-# This workflow automatically configures the disk_cache and repository_cache directories to
-# `~/.cache/bazel-disk-cache` and `~/.cache/bazel-repo-cache` respectively. It also sets the XDG_CACHE_HOME
-# env to `~/.cache/xdg-cache-home` which is used by bazelisk when downloading Bazel. GitHub Actions caching
-# is configured for these directories. Caching may be disabled by setting `mount_bazel_caches` to false.
+# This workflow uses https://github.com/p0deje/setup-bazel to prepare the cache folders.
+# Caching may be disabled by setting `mount_bazel_caches` to false.
 
 on:
   # Make this workflow reusable, see
@@ -37,11 +35,11 @@ on:
       mount_bazel_caches:
         default: true
         description: |
-          Additional startup flags to pass to the 'bazel test //...' invocation
+          Whether to enable caching in the p0deje/setup-bazel action.
         type: boolean
       prerelease:
         default: true
-        description: Indicator of whether or not is a prerelease
+        description: Indicator of whether or not this is a prerelease.
         type: boolean
 
 jobs:
@@ -50,21 +48,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Mount bazel caches
-        uses: actions/cache@v3
-        if: ${{ inputs.mount_bazel_caches }}
+
+        # TODO: change to bazel-contrib after it moves
+      - uses: p0deje/setup-bazel@0.6.0
         with:
-          path: |
-            ~/.cache/bazel-disk-cache
-            ~/.cache/bazel-repository-cache
-            ~/.cache/xdg-cache-home
-          key: bazel-cache-release-${{ hashFiles('.bazelrc', '.bazelversion', '.bazeliskrc', '**/BUILD', '**/BUILD.bazel', '**/*.bzl', 'WORKSPACE', 'WORKSPACE.bazel', 'WORKSPACE.bzlmod', 'MODULE.bazel', 'MODULE.bazel.lock') }}
-          restore-keys: bazel-cache-release-
+          disk-cache: ${{ inputs.mount_bazel_caches }}
+          external-cache: ${{ inputs.mount_bazel_caches }}
+          repository-cache: ${{ inputs.mount_bazel_caches }}
+
       - name: Test
         run: ${{ inputs.bazel_test_command }} --disk_cache=~/.cache/bazel-disk-cache --repository_cache=~/.cache/bazel-repository-cache
-        env:
-          # Bazelisk will download bazel to here
-          XDG_CACHE_HOME: ~/.cache/xdg-cache-home
+
       - name: Build release artifacts and prepare release notes
         run: |
           if [ ! -f "${{ inputs.release_prep_command }}" ]; then
@@ -72,9 +66,7 @@ jobs:
             exit 1
           fi
           ${{ inputs.release_prep_command }} ${{ env.GITHUB_REF_NAME }} > release_notes.txt
-        env:
-          # Bazelisk will download bazel to here
-          XDG_CACHE_HOME: ~/.cache/xdg-cache-home
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
