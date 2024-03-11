@@ -116,7 +116,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # TODO: change to bazel-contrib after it moves
-      - uses: p0deje/setup-bazel@0.6.0
+      - uses: bazel-contrib/setup-bazel@0.8.0
         with:
           repository-cache: ${{ inputs.mount_bazel_caches }}
           bazelrc: common --announce_rc --color=yes --enable_bzlmod=${{ matrix.bzlmodEnabled }}
