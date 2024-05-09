@@ -5,7 +5,7 @@
 # the release. This can be customized with the `release_prep_command` attribute. Release notes are
 # expected to be outputted to stdout from the release prep command.
 #
-# This workflow uses https://github.com/p0deje/setup-bazel to prepare the cache folders.
+# This workflow uses https://github.com/bazel-contrib/setup-bazel to prepare the cache folders.
 # Caching may be disabled by setting `mount_bazel_caches` to false.
 
 on:
@@ -35,7 +35,7 @@ on:
       mount_bazel_caches:
         default: true
         description: |
-          Whether to enable caching in the p0deje/setup-bazel action.
+          Whether to enable caching in the bazel-contrib/setup-bazel action.
         type: boolean
       prerelease:
         default: true
