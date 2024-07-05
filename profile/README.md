@@ -1,17 +1,11 @@
-# Bazel Contributors
+# Community for Bazel
 
-This org is governed by a [Bazel] community group.
-It is not owned or maintained by Google.
+This GitHub Organization is the home of "Community for [Bazel]", a Technical Steering Committee organized under the Linux Foundation.
+The official charter is available as [Community For Bazel Technical Charter PDF](/Community%20for%20Bazel%20Technical%20Charter.pdf).
 
-It is the home of the Bazel Rules Authors Special Interest Group (SIG),
-see https://github.com/bazel-contrib/SIG-rules-authors
+## Rules Authors SIG
 
-In the future it's possible that other groups may want to share this org with us, such as:
-
-- Remote Execution
-- Windows support
-- Editors
-
-Come chat with us in https://slack.bazel.build in `#rules` if you'd like to participate in bazel-contrib outside of the Rules Authors SIG.
+The Technical Steering Committee runs the the [Bazel Rules Authors Special Interest Group (SIG)](https://bazel-contrib.github.io/SIG-rules-authors/).
+Come chat with us in https://slack.bazel.build in `#rules` or use the [mailing list](https://groups.google.com/g/bazel-contrib).
 
 [Bazel]: https://bazel.build
