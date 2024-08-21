@@ -1,5 +1,7 @@
 # Community for Bazel
 
+## TSC in Linux Foundation
+
 This GitHub Organization is the home of "Community for [Bazel]", a Technical Steering Committee organized under the Linux Foundation.
 The official charter is available as [Community For Bazel Technical Charter PDF](/Community%20for%20Bazel%20Technical%20Charter.pdf).
 
