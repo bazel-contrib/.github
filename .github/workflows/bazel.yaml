@@ -5,7 +5,7 @@
 # - .github/workflows/ci.bazelrc
 # - .bazelrc
 #
-# This workflow uses https://github.com/p0deje/setup-bazel to prepare the cache folders.
+# This workflow uses https://github.com/bazel-contrib/setup-bazel to prepare the cache folders.
 # Caching may be disabled by setting `mount_bazel_caches` to false.
 
 on:
@@ -25,17 +25,18 @@ on:
         description: |
           JSON-formatted array of exclusions to the generated matrix of tests.
 
-          By default, we don't test non-linux with Bazel 6 to minimize macOS and Windows minutes
+          By default, we don't test non-linux with Bazel 8 to minimize macOS and Windows minutes
           since they are billed at 10X and 2X respectively:
           https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
 
           Note: independent of this setting, we don't create MacOS/Windows matrix entries for pull requests
           unless they come from a specially-named branch. See logic below.
         type: string
+        # TODO: update to Bazel 8.0.0rc when it's released
         default: |
           [
-            {"bazelversion": "6.4.0", "os": "macos-latest"},
-            {"bazelversion": "6.4.0", "os": "windows-latest"}
+            {"bazelversion": "last_green", "os": "macos-latest"},
+            {"bazelversion": "last_green", "os": "windows-latest"}
           ]
       exclude_windows:
         description: Don't run any tests on Windows
@@ -51,7 +52,7 @@ on:
       mount_bazel_caches:
         default: true
         description: |
-          Whether to enable caching in the p0deje/setup-bazel action.
+          Whether to enable caching in the bazel-contrib/setup-bazel action.
         type: boolean
 
 jobs:
@@ -86,8 +87,8 @@ jobs:
       # NB: we assume this is Bazel 7
       - id: bazel_from_bazelversion
         run: echo "bazelversion=$(head -n 1 .bazelversion)" >> $GITHUB_OUTPUT
-      - id: bazel_6
-        run: echo "bazelversion=6.4.0" >> $GITHUB_OUTPUT
+      - id: bazel_8
+        run: echo "bazelversion=last_green" >> $GITHUB_OUTPUT
     outputs:
       # Will look like ["<version from .bazelversion>", "x.y.z"]
       bazelversions: ${{ toJSON(steps.*.outputs.bazelversion) }}
