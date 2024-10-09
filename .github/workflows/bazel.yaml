@@ -32,11 +32,10 @@ on:
           Note: independent of this setting, we don't create MacOS/Windows matrix entries for pull requests
           unless they come from a specially-named branch. See logic below.
         type: string
-        # TODO: update to Bazel 8.0.0rc when it's released
         default: |
           [
-            {"bazelversion": "last_green", "os": "macos-latest"},
-            {"bazelversion": "last_green", "os": "windows-latest"}
+            {"bazelversion": "8.0.0rc1", "os": "macos-latest"},
+            {"bazelversion": "8.0.0rc1", "os": "windows-latest"}
           ]
       exclude_windows:
         description: Don't run any tests on Windows
@@ -88,7 +87,7 @@ jobs:
       - id: bazel_from_bazelversion
         run: echo "bazelversion=$(head -n 1 .bazelversion)" >> $GITHUB_OUTPUT
       - id: bazel_8
-        run: echo "bazelversion=last_green" >> $GITHUB_OUTPUT
+        run: echo "bazelversion=8.0.0rc1" >> $GITHUB_OUTPUT
     outputs:
       # Will look like ["<version from .bazelversion>", "x.y.z"]
       bazelversions: ${{ toJSON(steps.*.outputs.bazelversion) }}
