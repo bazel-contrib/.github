@@ -5,7 +5,7 @@
 # - .github/workflows/ci.bazelrc
 # - .bazelrc
 #
-# This workflow uses https://github.com/p0deje/setup-bazel to prepare the cache folders.
+# This workflow uses https://github.com/bazel-contrib/setup-bazel to prepare the cache folders.
 # Caching may be disabled by setting `mount_bazel_caches` to false.
 
 on:
@@ -25,7 +25,7 @@ on:
         description: |
           JSON-formatted array of exclusions to the generated matrix of tests.
 
-          By default, we don't test non-linux with Bazel 6 to minimize macOS and Windows minutes
+          By default, we don't test non-linux with Bazel 8 to minimize macOS and Windows minutes
           since they are billed at 10X and 2X respectively:
           https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
 
@@ -34,8 +34,8 @@ on:
         type: string
         default: |
           [
-            {"bazelversion": "6.4.0", "os": "macos-latest"},
-            {"bazelversion": "6.4.0", "os": "windows-latest"}
+            {"bazelversion": "8.0.0rc1", "os": "macos-latest"},
+            {"bazelversion": "8.0.0rc1", "os": "windows-latest"}
           ]
       exclude_windows:
         description: Don't run any tests on Windows
@@ -51,7 +51,7 @@ on:
       mount_bazel_caches:
         default: true
         description: |
-          Whether to enable caching in the p0deje/setup-bazel action.
+          Whether to enable caching in the bazel-contrib/setup-bazel action.
         type: boolean
 
 jobs:
@@ -86,8 +86,8 @@ jobs:
       # NB: we assume this is Bazel 7
       - id: bazel_from_bazelversion
         run: echo "bazelversion=$(head -n 1 .bazelversion)" >> $GITHUB_OUTPUT
-      - id: bazel_6
-        run: echo "bazelversion=6.4.0" >> $GITHUB_OUTPUT
+      - id: bazel_8
+        run: echo "bazelversion=8.0.0rc1" >> $GITHUB_OUTPUT
     outputs:
       # Will look like ["<version from .bazelversion>", "x.y.z"]
       bazelversions: ${{ toJSON(steps.*.outputs.bazelversion) }}
@@ -118,11 +118,13 @@ jobs:
       - uses: bazel-contrib/setup-bazel@0.8.0
         with:
           repository-cache: ${{ inputs.mount_bazel_caches }}
-          bazelrc: common --announce_rc --color=yes --enable_bzlmod=${{ matrix.bzlmodEnabled }}
+          bazelrc: common --announce_rc --color=yes --enable_bzlmod=${{ matrix.bzlmodEnabled }} --enable_workspace=${{ ! matrix.bzlmodEnabled }}
 
       - name: Configure Bazel version
         working-directory: ${{ matrix.folder }}
-        run: echo "${{ matrix.bazelversion }}" > .bazelversion
+        run: |
+          echo "${{ matrix.bazelversion }}" > .bazelversion
+          bazel version
 
       - name: Check for test.sh
         # Checks for the existence of test.sh in the folder. Downstream steps can use
