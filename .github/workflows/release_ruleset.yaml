@@ -44,7 +44,7 @@ on:
       tag_name:
         description: |
           The tag which is being released.
-          By default, https://github.com/softprops/action-gh-release will use `github.tag_name`.
+          By default, https://github.com/softprops/action-gh-release will use `github.ref_name`.
         type: string
 
 jobs:
