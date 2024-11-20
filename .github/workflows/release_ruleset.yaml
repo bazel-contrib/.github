@@ -78,4 +78,4 @@ jobs:
           body_path: release_notes.txt
           fail_on_unmatched_files: true
           files: ${{ inputs.release_files }}
-          tag_name: ${{ inputs.tag_name || github.ref }}
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
