@@ -41,6 +41,9 @@ on:
         default: true
         description: Indicator of whether or not this is a prerelease.
         type: boolean
+      tag_name:
+        description: the tag to apply. defaults to `github.ref`
+        type: string
 
 jobs:
   build:
@@ -75,3 +78,4 @@ jobs:
           body_path: release_notes.txt
           fail_on_unmatched_files: true
           files: ${{ inputs.release_files }}
+          tag_name: ${{ inputs.tag_name || github.ref }}
