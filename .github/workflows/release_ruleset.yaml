@@ -41,6 +41,11 @@ on:
         default: true
         description: Indicator of whether or not this is a prerelease.
         type: boolean
+      tag_name:
+        description: |
+          The tag which is being released.
+          By default, https://github.com/softprops/action-gh-release will use `github.ref_name`.
+        type: string
 
 jobs:
   build:
@@ -75,3 +80,4 @@ jobs:
           body_path: release_notes.txt
           fail_on_unmatched_files: true
           files: ${{ inputs.release_files }}
+          tag_name: ${{ inputs.tag_name }}
