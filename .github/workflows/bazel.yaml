@@ -118,7 +118,16 @@ jobs:
       - uses: bazel-contrib/setup-bazel@0.8.0
         with:
           repository-cache: ${{ inputs.mount_bazel_caches }}
-          bazelrc: common --announce_rc --color=yes --enable_bzlmod=${{ matrix.bzlmodEnabled }} --enable_workspace=${{ ! matrix.bzlmodEnabled }}
+          bazelrc: |
+            common --announce_rc
+            common --color=yes
+            common --enable_bzlmod=${{ matrix.bzlmodEnabled }}
+
+      - name: Configure bazelrc --enable_workspace (bazelversion >= 7.1.0)
+        working-directory: ${{ matrix.folder }}
+        if: ${{ !matrix.bzlmodEnabled && !startsWith(matrix.bazelversion, '6.') && !startsWith(matrix.bazelversion, '7.0.') }}
+        run: |
+          echo "common --enable_workspace" >> .bazelrc
 
       - name: Configure Bazel version
         working-directory: ${{ matrix.folder }}
