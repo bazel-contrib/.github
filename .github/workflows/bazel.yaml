@@ -1,10 +1,6 @@
 # Reusable workflow that can be referenced by repositories in their .github/workflows/ci.yaml.
 # See example usage in https://github.com/bazel-contrib/rules-template/blob/main/.github/workflows/ci.yaml
 #
-# This assumes the repo calling the workflow has at least these files:
-# - .github/workflows/ci.bazelrc
-# - .bazelrc
-#
 # This workflow uses https://github.com/bazel-contrib/setup-bazel to prepare the cache folders.
 # Caching may be disabled by setting `mount_bazel_caches` to false.
 
