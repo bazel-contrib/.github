@@ -71,7 +71,7 @@ jobs:
             echo "ERROR: create a ${{ inputs.release_prep_command }} release prep script or configure a different release prep command with the release_prep_command attribute"
             exit 1
           fi
-          ${{ inputs.release_prep_command }} ${{ inputs.tag_name || env.GITHUB_REF_NAME }} > release_notes.txt
+          ${{ inputs.release_prep_command }} ${{ inputs.tag_name || github.ref_name }} > release_notes.txt
 
       - name: Release
         uses: softprops/action-gh-release@v1
