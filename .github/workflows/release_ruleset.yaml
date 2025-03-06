@@ -34,7 +34,7 @@ on:
 
           The following arguments are passed to the script:
 
-            <tag_or_ref> The tag supplied as an input to this workflows, or ${{ github.ref_name }}.
+            <tag_or_ref> The tag supplied as an input to this workflows, or `github.ref_name`.
 
           The script must output a JSON blob with paths to release archives. The path can
           be absolute or relative to the ARTIFACTS_DIR. For example:
