@@ -7,6 +7,13 @@
 #
 # This workflow uses https://github.com/bazel-contrib/setup-bazel to prepare the cache folders.
 # Caching may be disabled by setting `mount_bazel_caches` to false.
+#
+# The workflow requires the following permissions to be set on the invoking job:
+#
+# permissions:
+#   id-token: write        # Needed to attest provenance
+#   attestations: write    # Needed to attest provenance
+#   contents: write        # Needed to upload release files
 
 on:
   # Make this workflow reusable, see
@@ -17,7 +24,10 @@ on:
         required: true
         description: |
           Newline-delimited globs of paths to assets to upload for release.
-          See https://github.com/softprops/action-gh-release#inputs
+          relative to the module repository. The paths should include any files
+          such as a release archive created by the `release_prep_command`.
+
+          See https://github.com/softprops/action-gh-release#inputs.
         type: string
       release_prep_command:
         default: .github/workflows/release_prep.sh
@@ -56,7 +66,7 @@ jobs:
         with:
           ref: ${{ inputs.tag_name }}
 
-      - uses: bazel-contrib/setup-bazel@0.8.0
+      - uses: bazel-contrib/setup-bazel@0.14.0
         with:
           disk-cache: ${{ inputs.mount_bazel_caches }}
           external-cache: ${{ inputs.mount_bazel_caches }}
@@ -73,6 +83,34 @@ jobs:
           fi
           ${{ inputs.release_prep_command }} ${{ inputs.tag_name || github.ref_name }} > release_notes.txt
 
+      # https://github.com/actions/attest-build-provenance
+      - name: Attest release files
+        id: attest_release
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ inputs.release_files }}
+      
+      # The Bazel Central Registry requires an attestation per release archive, but the
+      # actions/attest-build-provenance action only produces a single attestation for a
+      # list of subjects. Copy the combined attestations into individually named
+      # .intoto.jsonl files.
+      - name: Write release archive attestations into intoto.jsonl
+        id: write_release_archive_attestation
+        run: |
+          # https://bazel.build/rules/lib/repo/http#http_archive
+          RELEASE_ARCHIVE_REGEX="(.zip|.jar|.war|.aar|.tar|.tar.gz|.tgz|.tar.xz|.txz|.tar.xzt|.tzst|.tar.bz2|.ar|.deb)$"
+
+          ATTESTATIONS_DIR=$(mktemp --directory)
+          RELEASE_FILES="${{ join(inputs.release_files, ' ') }}"
+          for filename in $RELEASE_FILES; do
+            if [[ "${filename}" =~ $RELEASE_ARCHIVE_REGEX ]]; then
+                ATTESTATION_FILE="$(basename "${filename}").intoto.jsonl"
+                echo "Writing attestation to ${ATTESTATION_FILE}"
+                cat ${{ steps.attest_release.outputs.bundle-path }} | jq --compact-output > "${ATTESTATIONS_DIR}/${ATTESTATION_FILE}"
+            fi
+          done
+          echo "release_archive_attestations_dir=${ATTESTATIONS_DIR}" >> $GITHUB_OUTPUT
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
@@ -81,5 +119,7 @@ jobs:
           generate_release_notes: true
           body_path: release_notes.txt
           fail_on_unmatched_files: true
-          files: ${{ inputs.release_files }}
           tag_name: ${{ inputs.tag_name }}
+          files: |
+            ${{ inputs.release_files }}
+            ${{ steps.write_release_archive_attestation.outputs.release_archive_attestations_dir }}/*
