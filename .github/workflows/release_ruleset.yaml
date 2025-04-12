@@ -1,9 +1,8 @@
 # Reusable workflow that can be referenced by repositories in their `.github/workflows/release.yaml`.
 # See example usage in https://github.com/bazel-contrib/rules-template/blob/main/.github/workflows/release.yaml
 #
-# By default this workflows calls `.github/workflows/release_prep.sh` as the command to prepare
-# the release. This can be customized with the `release_prep_command` attribute. Release notes are
-# expected to be outputted to stdout from the release prep command.
+# This workflow calls `.github/workflows/release_prep.sh` as the command to prepare the release.
+# Release notes are expected to be outputted to stdout from the release prep command.
 #
 # This workflow uses https://github.com/bazel-contrib/setup-bazel to prepare the cache folders.
 # Caching may be disabled by setting `mount_bazel_caches` to false.
@@ -27,16 +26,23 @@ on:
         description: |
           Newline-delimited globs of paths to assets to upload for release.
           relative to the module repository. The paths should include any files
-          such as a release archive created by the `release_prep_command`.
+          such as a release archive created by the release_prep script`.
 
           See https://github.com/softprops/action-gh-release#inputs.
         type: string
-      release_prep_command:
-        default: .github/workflows/release_prep.sh
-        description: |
-          Command to run to prepare the release and generate release notes.
-          Release notes are expected to be outputted to stdout.
-        type: string
+      # TODO: there's a security design problem here:
+      # Users of a workflow_dispatch trigger could fill in something via the GH Web UI
+      # that would cause the release to use an arbitrary script.
+      # That change wouldn't be reflected in the sources in the repo, and therefore
+      # would not be verifiable by the attestation.
+      # For now, we force this path to be hard-coded.
+      #
+      # release_prep_command:
+      #   default: .github/workflows/release_prep.sh
+      #   description: |
+      #     Command to run to prepare the release and generate release notes.
+      #     Release notes are expected to be outputted to stdout.
+      #   type: string
       bazel_test_command:
         default: "bazel test //..."
         description: |
@@ -82,11 +88,11 @@ jobs:
 
       - name: Build release artifacts and prepare release notes
         run: |
-          if [ ! -f "${{ inputs.release_prep_command }}" ]; then
-            echo "ERROR: create a ${{ inputs.release_prep_command }} release prep script or configure a different release prep command with the release_prep_command attribute"
+          if [ ! -f ".github/workflows/release_prep.sh" ]; then
+            echo "ERROR: create a .github/workflows/release_prep.sh script"
             exit 1
           fi
-          ${{ inputs.release_prep_command }} ${{ inputs.tag_name || github.ref_name }} > release_notes.txt
+          .github/workflows/release_prep.sh ${{ inputs.tag_name || github.ref_name }} > release_notes.txt
 
       - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0
         id: upload-release-files
