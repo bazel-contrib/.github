@@ -14,6 +14,8 @@
 #   attestations: write    # Needed to attest provenance
 #   contents: write        # Needed to upload release files
 
+permissions: {}
+
 on:
   # Make this workflow reusable, see
   # https://github.blog/2022-02-10-using-reusable-workflows-github-actions
@@ -65,6 +67,9 @@ on:
 
 jobs:
   build:
+    outputs:
+      release-files-artifact-id: ${{ steps.upload-release-files.outputs.artifact-id }}
+      release-notes-artifact-id: ${{ steps.upload-release-notes.outputs.artifact-id }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -89,13 +94,47 @@ jobs:
           fi
           .github/workflows/release_prep.sh ${{ inputs.tag_name || github.ref_name }} > release_notes.txt
 
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0
+        id: upload-release-files
+        with:
+          name: release_files
+          path: ${{ inputs.release_files }}
+
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0
+        id: upload-release-notes
+        with:
+          name: release_notes
+          path: release_notes.txt
+
+  attest:
+    needs: build
+    outputs:
+      attestations-artifact-id: ${{ steps.upload-attestations.outputs.artifact-id }}
+    permissions:
+      id-token: write
+      attestations: write
+    runs-on: ubuntu-latest
+    steps:
+      # actions/download-artifact@v4 does not yet support downloading via the immutable artifact-id,
+      # but the Javascript library does. See: https://github.com/actions/download-artifact/issues/349
+      - run: npm install @actions/artifact@2.1.9
+      - name: download-release-files
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          ARTIFACT_ID: ${{ needs.build.outputs.release-files-artifact-id }}
+        with:
+          script: |
+            const {default: artifactClient} = require('@actions/artifact')
+            const { ARTIFACT_ID } = process.env
+            await artifactClient.downloadArtifact(ARTIFACT_ID, { path: 'release_files/'})
+
       # https://github.com/actions/attest-build-provenance
       - name: Attest release files
         id: attest_release
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: ${{ inputs.release_files }}
-      
+          subject-path: release_files/**/*
+
       # The Bazel Central Registry requires an attestation per release archive, but the
       # actions/attest-build-provenance action only produces a single attestation for a
       # list of subjects. Copy the combined attestations into individually named
@@ -107,8 +146,7 @@ jobs:
           RELEASE_ARCHIVE_REGEX="(.zip|.jar|.war|.aar|.tar|.tar.gz|.tgz|.tar.xz|.txz|.tar.xzt|.tzst|.tar.bz2|.ar|.deb)$"
 
           ATTESTATIONS_DIR=$(mktemp --directory)
-          RELEASE_FILES="${{ join(inputs.release_files, ' ') }}"
-          for filename in $RELEASE_FILES; do
+          for filename in $(find release_files/ -type f -printf "%f\n"); do
             if [[ "${filename}" =~ $RELEASE_ARCHIVE_REGEX ]]; then
                 ATTESTATION_FILE="$(basename "${filename}").intoto.jsonl"
                 echo "Writing attestation to ${ATTESTATION_FILE}"
@@ -116,6 +154,36 @@ jobs:
             fi
           done
           echo "release_archive_attestations_dir=${ATTESTATIONS_DIR}" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0
+        id: upload-attestations
+        with:
+          name: attestations
+          path: ${{ steps.write_release_archive_attestation.outputs.release_archive_attestations_dir }}/*
+
+  release:
+    needs: [build, attest]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      # actions/download-artifact@v4 does not yet support downloading via the immutable artifact-id,
+      # but the Javascript library does. See: https://github.com/actions/download-artifact/issues/349
+      - run: npm install @actions/artifact@2.1.9
+      - name: download-artifacts
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          RELEASE_FILES_ARTIFACT_ID: ${{ needs.build.outputs.release-files-artifact-id }}
+          RELEASE_NOTES_ARTIFACT_ID: ${{ needs.build.outputs.release-notes-artifact-id }}
+          ATTESTATIONS_ARTIFACT_ID: ${{ needs.attest.outputs.attestations-artifact-id }}
+        with:
+          script: |
+            const {default: artifactClient} = require('@actions/artifact')
+            const { RELEASE_FILES_ARTIFACT_ID, RELEASE_NOTES_ARTIFACT_ID, ATTESTATIONS_ARTIFACT_ID } = process.env
+            await Promise.all([
+              artifactClient.downloadArtifact(RELEASE_FILES_ARTIFACT_ID, { path: 'release_files/'}),
+              artifactClient.downloadArtifact(RELEASE_NOTES_ARTIFACT_ID, { path: 'release_notes/'}),
+              artifactClient.downloadArtifact(ATTESTATIONS_ARTIFACT_ID, { path: 'attestations/'})
+            ])
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -123,9 +191,9 @@ jobs:
           prerelease: ${{ inputs.prerelease }}
           # Use GH feature to populate the changelog automatically
           generate_release_notes: true
-          body_path: release_notes.txt
+          body_path: release_notes/release_notes.txt
           fail_on_unmatched_files: true
           tag_name: ${{ inputs.tag_name }}
           files: |
-            ${{ inputs.release_files }}
-            ${{ steps.write_release_archive_attestation.outputs.release_archive_attestations_dir }}/*
+            release_files/*
+            attestations/*
