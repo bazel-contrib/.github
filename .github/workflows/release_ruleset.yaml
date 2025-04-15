@@ -143,7 +143,7 @@ jobs:
         id: write_release_archive_attestation
         run: |
           # https://bazel.build/rules/lib/repo/http#http_archive
-          RELEASE_ARCHIVE_REGEX="(.zip|.jar|.war|.aar|.tar|.tar.gz|.tgz|.tar.xz|.txz|.tar.xzt|.tzst|.tar.bz2|.ar|.deb)$"
+          RELEASE_ARCHIVE_REGEX="(\.zip|\.jar|\.war|\.aar|\.tar|\.tar\.gz|\.tgz|\.tar\.xz|\.txz|\.tar\.xzt|\.tzst|\.tar\.bz2|\.ar|\.deb)$"
 
           ATTESTATIONS_DIR=$(mktemp --directory)
           for filename in $(find release_files/ -type f -printf "%f\n"); do
