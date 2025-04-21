@@ -86,6 +86,10 @@ jobs:
       - name: Test
         run: ${{ inputs.bazel_test_command }} --disk_cache=~/.cache/bazel-disk-cache --repository_cache=~/.cache/bazel-repository-cache
 
+      # Fetch built artifacts (if any) from earlier jobs, which the release script may want to read.
+      # Extract into ${GITHUB_WORKSPACE}/artifacts/*
+      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+    
       - name: Build release artifacts and prepare release notes
         run: |
           if [ ! -f ".github/workflows/release_prep.sh" ]; then
