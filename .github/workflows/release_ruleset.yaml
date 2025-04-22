@@ -199,5 +199,5 @@ jobs:
           fail_on_unmatched_files: true
           tag_name: ${{ inputs.tag_name }}
           files: |
-            release_files/*
+            release_files/**/*
             attestations/*
