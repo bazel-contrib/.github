@@ -59,6 +59,11 @@ on:
         default: true
         description: Indicator of whether or not this is a prerelease.
         type: boolean
+      draft:
+        default: false
+        description: |
+          Whether the release should be created as a draft or published immediately.
+        type: boolean
       tag_name:
         description: |
           The tag which is being released.
@@ -190,9 +195,10 @@ jobs:
             ])
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ inputs.prerelease }}
+          draft: ${{ inputs.draft }}
           # Use GH feature to populate the changelog automatically
           generate_release_notes: true
           body_path: release_notes/release_notes.txt
