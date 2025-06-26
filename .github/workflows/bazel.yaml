@@ -118,6 +118,7 @@ jobs:
             common --announce_rc
             common --color=yes
             common --enable_bzlmod=${{ matrix.bzlmodEnabled }}
+            try-import ${{ github.workspace }}/.github/workflows/ci.bazelrc
 
       - name: Configure bazelrc --enable_workspace (bazelversion >= 7.1.0)
         working-directory: ${{ matrix.folder }}
