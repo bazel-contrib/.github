@@ -59,6 +59,16 @@ on:
         default: true
         description: Indicator of whether or not this is a prerelease.
         type: boolean
+      docs:
+        default: ""
+        description: |
+          Indicator of whether or not to generate starlark documentation from bzl_library targets.
+          When set, provides the filename of an archive file to produce.
+          NB: This file must ALSO appear in the `release_files` input in order to be published to the release.
+
+          The archive will be populated with binary protobuf files output by the
+          [starlark_doc_extract](https://bazel.build/reference/be/general#starlark_doc_extract) rule.
+        type: string
       draft:
         default: false
         description: |
@@ -88,13 +98,31 @@ jobs:
           external-cache: ${{ inputs.mount_bazel_caches }}
           repository-cache: ${{ inputs.mount_bazel_caches }}
 
-      - name: Test
-        run: ${{ inputs.bazel_test_command }} --disk_cache=~/.cache/bazel-disk-cache --repository_cache=~/.cache/bazel-repository-cache
+      - name: Generate starlark documentation
+        id: generate-docs
+        if: inputs.docs
+        env:
+          USE_BAZEL_VERSION: 7.x
+        run: |
+          cd $(mktemp -d)
+          cat >MODULE.bazel <<EOF
+          bazel_dep(name = "rules_oci", version = "0.0.0")
+          local_path_override(
+              module_name = "rules_oci",
+              path = "${{github.workspace}}",
+          )
+          EOF
+          bazel query 'kind("starlark_doc_extract rule", @rules_oci//oci/...)' \
+            | xargs bazel build --remote_download_regex='.*doc_extract\.binaryproto'
+          tar --create --verbose --auto-compress --directory "$(bazel info bazel-bin)" --file ${{ github.workspace }}/${{ inputs.docs }} .
+
+      # - name: Test
+      #   run: ${{ inputs.bazel_test_command }} --disk_cache=~/.cache/bazel-disk-cache --repository_cache=~/.cache/bazel-repository-cache
 
       # Fetch built artifacts (if any) from earlier jobs, which the release script may want to read.
       # Extract into ${GITHUB_WORKSPACE}/artifacts/*
       - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
-    
+
       - name: Build release artifacts and prepare release notes
         run: |
           if [ ! -f ".github/workflows/release_prep.sh" ]; then
@@ -109,12 +137,11 @@ jobs:
           name: release_files
           path: ${{ inputs.release_files }}
 
-      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0,
         id: upload-release-notes
         with:
           name: release_notes
           path: release_notes.txt
-
   attest:
     needs: build
     outputs:
