@@ -69,6 +69,11 @@ on:
           The tag which is being released.
           By default, https://github.com/softprops/action-gh-release will use `github.ref_name`.
         type: string
+      module_version:
+        description: |
+          The version of the module being released, e.g. "1.2.3".
+          This is passed to the release_prep script as the second argument.
+        type: string
 
 jobs:
   build:
@@ -101,7 +106,12 @@ jobs:
             echo "ERROR: create a .github/workflows/release_prep.sh script"
             exit 1
           fi
-          .github/workflows/release_prep.sh ${{ inputs.tag_name || github.ref_name }} > release_notes.txt
+          tag="${{ inputs.tag_name || github.ref_name }}"
+          version="${{ inputs.module_version }}"
+          if [ -z "$version" ]; then
+            version="${tag:1}"
+          fi
+          .github/workflows/release_prep.sh $tag $version > release_notes.txt
 
       - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0
         id: upload-release-files
