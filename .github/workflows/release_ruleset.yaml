@@ -194,11 +194,11 @@ jobs:
               artifactClient.downloadArtifact(ATTESTATIONS_ARTIFACT_ID, { path: 'attestations/'})
             ])
 
-      - name: Release
+      - name: Upload Draft Artifacts
         uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ inputs.prerelease }}
-          draft: ${{ inputs.draft }}
+          draft: true
           # Use GH feature to populate the changelog automatically
           generate_release_notes: true
           body_path: release_notes/release_notes.txt
@@ -207,3 +207,13 @@ jobs:
           files: |
             release_files/**/*
             attestations/*
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ inputs.prerelease }}
+          draft: ${{ inputs.draft }}
+          # Use GH feature to populate the changelog automatically
+          generate_release_notes: true
+          body_path: release_notes/release_notes.txt
+          tag_name: ${{ inputs.tag_name }}
