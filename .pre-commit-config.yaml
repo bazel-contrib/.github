@@ -3,7 +3,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 
 # Run hooks on commit stage
-default_stages: [commit]
+default_stages: [pre-commit]
 
 # Use a slightly older version of node by default
 # as the default uses a very new version of GLIBC
