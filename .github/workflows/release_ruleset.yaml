@@ -78,11 +78,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.tag_name }}
 
-      - uses: bazel-contrib/setup-bazel@0.14.0
+      - uses: bazel-contrib/setup-bazel@0.18.0
         with:
           disk-cache: ${{ inputs.mount_bazel_caches }}
           external-cache: ${{ inputs.mount_bazel_caches }}
@@ -93,8 +93,8 @@ jobs:
 
       # Fetch built artifacts (if any) from earlier jobs, which the release script may want to read.
       # Extract into ${GITHUB_WORKSPACE}/artifacts/*
-      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
-    
+      - uses: actions/download-artifact@v7
+
       - name: Build release artifacts and prepare release notes
         run: |
           if [ ! -f ".github/workflows/release_prep.sh" ]; then
@@ -103,13 +103,13 @@ jobs:
           fi
           .github/workflows/release_prep.sh ${{ inputs.tag_name || github.ref_name }} > release_notes.txt
 
-      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0
+      - uses: actions/upload-artifact@v6
         id: upload-release-files
         with:
           name: release_files
           path: ${{ inputs.release_files }}
 
-      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0
+      - uses: actions/upload-artifact@v6
         id: upload-release-notes
         with:
           name: release_notes
@@ -124,23 +124,15 @@ jobs:
       attestations: write
     runs-on: ubuntu-latest
     steps:
-      # actions/download-artifact@v4 does not yet support downloading via the immutable artifact-id,
-      # but the Javascript library does. See: https://github.com/actions/download-artifact/issues/349
-      - run: npm install @actions/artifact@2.1.9
-      - name: download-release-files
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        env:
-          ARTIFACT_ID: ${{ needs.build.outputs.release-files-artifact-id }}
+      - uses: actions/download-artifact@v7
         with:
-          script: |
-            const {default: artifactClient} = require('@actions/artifact')
-            const { ARTIFACT_ID } = process.env
-            await artifactClient.downloadArtifact(ARTIFACT_ID, { path: 'release_files/'})
+          artifact-ids: ${{ needs.build.outputs.release-files-artifact-id }}
+          path: release_files
 
       # https://github.com/actions/attest-build-provenance
       - name: Attest release files
         id: attest_release
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: release_files/**/*
 
@@ -163,7 +155,7 @@ jobs:
             fi
           done
           echo "release_archive_attestations_dir=${ATTESTATIONS_DIR}" >> $GITHUB_OUTPUT
-      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 #v4.6.0
+      - uses: actions/upload-artifact@v6
         id: upload-attestations
         with:
           name: attestations
@@ -175,25 +167,18 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      # actions/download-artifact@v4 does not yet support downloading via the immutable artifact-id,
-      # but the Javascript library does. See: https://github.com/actions/download-artifact/issues/349
-      - run: npm install @actions/artifact@2.1.9
-      - name: download-artifacts
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        env:
-          RELEASE_FILES_ARTIFACT_ID: ${{ needs.build.outputs.release-files-artifact-id }}
-          RELEASE_NOTES_ARTIFACT_ID: ${{ needs.build.outputs.release-notes-artifact-id }}
-          ATTESTATIONS_ARTIFACT_ID: ${{ needs.attest.outputs.attestations-artifact-id }}
+      - uses: actions/download-artifact@v7
         with:
-          script: |
-            const {default: artifactClient} = require('@actions/artifact')
-            const { RELEASE_FILES_ARTIFACT_ID, RELEASE_NOTES_ARTIFACT_ID, ATTESTATIONS_ARTIFACT_ID } = process.env
-            await Promise.all([
-              artifactClient.downloadArtifact(RELEASE_FILES_ARTIFACT_ID, { path: 'release_files/'}),
-              artifactClient.downloadArtifact(RELEASE_NOTES_ARTIFACT_ID, { path: 'release_notes/'}),
-              artifactClient.downloadArtifact(ATTESTATIONS_ARTIFACT_ID, { path: 'attestations/'})
-            ])
-
+          artifact-ids: ${{ needs.build.outputs.release-files-artifact-id }}
+          path: release_files
+      - uses: actions/download-artifact@v7
+        with:
+          artifact-ids: ${{ needs.build.outputs.release-notes-artifact-id }}
+          path: release_notes
+      - uses: actions/download-artifact@v7
+        with:
+          artifact-ids: ${{ needs.attest.outputs.attestations-artifact-id }}
+          path: attestations
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
