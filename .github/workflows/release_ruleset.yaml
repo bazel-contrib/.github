@@ -64,6 +64,13 @@ on:
         description: |
           Whether the release should be created as a draft or published immediately.
         type: boolean
+      generate_release_notes:
+        default: true
+        description: |
+          Whether to automatically generate the name and body for this release.
+          Controls the like-named setting on https://github.com/softprops/action-gh-release#inputs
+          The output of release_prep.sh will be pre-pended to the automatically generated notes.
+        type: boolean
       tag_name:
         description: |
           The tag which is being released.
@@ -200,7 +207,7 @@ jobs:
           prerelease: ${{ inputs.prerelease }}
           draft: ${{ inputs.draft }}
           # Use GH feature to populate the changelog automatically
-          generate_release_notes: true
+          generate_release_notes: ${{ inputs.generate_release_notes }}
           body_path: release_notes/release_notes.txt
           fail_on_unmatched_files: true
           tag_name: ${{ inputs.tag_name }}
