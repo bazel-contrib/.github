@@ -9,6 +9,11 @@ on:
   # https://github.blog/2022-02-10-using-reusable-workflows-github-actions
   workflow_call:
     inputs:
+      bazel_versions:
+        description: |
+          JSON-formatted array of Bazel versions to test with. For example, '["7.0.0", "8.x"]'.
+          If not set, defaults to the version specified in the .bazelversion file and 8.0.0.
+        type: string
       folders:
         required: true
         # JSON is needed because list is not supported:
@@ -79,14 +84,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        if: inputs.bazel_versions == ''
       # NB: we assume this is Bazel 7
       - id: bazel_from_bazelversion
+        if: inputs.bazel_versions == ''
         run: echo "bazelversion=$(head -n 1 .bazelversion)" >> $GITHUB_OUTPUT
       - id: bazel_8
+        if: inputs.bazel_versions == ''
         run: echo "bazelversion=8.0.0" >> $GITHUB_OUTPUT
     outputs:
-      # Will look like ["<version from .bazelversion>", "x.y.z"]
-      bazelversions: ${{ toJSON(steps.*.outputs.bazelversion) }}
+      bazelversions: ${{ inputs.bazel_versions != '' && inputs.bazel_versions || toJSON(steps.*.outputs.bazelversion) }}
+
+  matrix-prep-exclude:
+    # Prepares the 'exclude' axis of the test matrix
+    runs-on: ubuntu-latest
+    needs:
+      - matrix-prep-bazelversion
+    steps:
+      - id: exclude
+        env:
+          INPUT_EXCLUDE: ${{ inputs.exclude }}
+          BAZEL_VERSIONS: ${{ needs.matrix-prep-bazelversion.outputs.bazelversions }}
+        run: |
+          exclude="$(
+            jq -cn \
+              --argjson input_exclude "$INPUT_EXCLUDE" \
+              --argjson bazel_versions "$BAZEL_VERSIONS" '
+                def major:
+                  (capture("^(?<major>[0-9]+)") | .major | tonumber)? // -1;
+                ($bazel_versions
+                  | map(select((. | major) >= 9) | {bazelversion: ., bzlmodEnabled: false})) as $bazel9_or_later
+                | ($input_exclude + $bazel9_or_later | unique)
+              '
+          )"
+          echo "exclude=$exclude" >> "$GITHUB_OUTPUT"
+    outputs:
+      exclude: ${{ steps.exclude.outputs.exclude }}
 
   test:
     # The type of runner that the job will run on
@@ -95,6 +128,7 @@ jobs:
     needs:
       - matrix-prep-bazelversion
       - matrix-prep-os
+      - matrix-prep-exclude
 
     # Run bazel test in each workspace with each version of Bazel supported
     strategy:
@@ -104,7 +138,7 @@ jobs:
         bazelversion: ${{ fromJSON(needs.matrix-prep-bazelversion.outputs.bazelversions) }}
         folder: ${{ fromJSON(inputs.folders) }}
         bzlmodEnabled: [true, false]
-        exclude: ${{ fromJSON(inputs.exclude) }}
+        exclude: ${{ fromJSON(needs.matrix-prep-exclude.outputs.exclude) }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
