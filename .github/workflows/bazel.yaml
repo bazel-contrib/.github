@@ -83,7 +83,7 @@ jobs:
     # Prepares the 'bazelversion' axis of the test matrix
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: inputs.bazel_versions == ''
       # NB: we assume this is Bazel 7
       - id: bazel_from_bazelversion
@@ -107,7 +107,9 @@ jobs:
           BAZEL_VERSIONS: ${{ needs.matrix-prep-bazelversion.outputs.bazelversions }}
         run: |
           exclude="$(
-            jq -cn \
+            jq \
+              --compact-output \
+              --null-input \
               --argjson input_exclude "$INPUT_EXCLUDE" \
               --argjson bazel_versions "$BAZEL_VERSIONS" '
                 def major:
@@ -143,9 +145,9 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: bazel-contrib/setup-bazel@0.18.0
+      - uses: bazel-contrib/setup-bazel@083175551ceeceebc757ebee2127fde78840ca77 # 0.18.0
         with:
           repository-cache: ${{ inputs.mount_bazel_caches }}
           bazelrc: |
@@ -169,7 +171,7 @@ jobs:
         # Checks for the existence of test.sh in the folder. Downstream steps can use
         # steps.has_test_sh.outputs.files_exists as a conditional.
         id: has_test_sh
-        uses: andstor/file-existence-action@v3
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
         with:
           files: "${{ matrix.folder }}/test.sh"
 
