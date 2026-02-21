@@ -9,6 +9,11 @@ on:
   # https://github.blog/2022-02-10-using-reusable-workflows-github-actions
   workflow_call:
     inputs:
+      bazel_versions:
+        description: |
+          JSON-formatted array of Bazel versions to test with. For example, '["7.0.0", "8.x"]'.
+          If not set, defaults to the version specified in the .bazelversion file and 8.0.0.
+        type: string
       folders:
         required: true
         # JSON is needed because list is not supported:
@@ -78,15 +83,45 @@ jobs:
     # Prepares the 'bazelversion' axis of the test matrix
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: inputs.bazel_versions == ''
       # NB: we assume this is Bazel 7
       - id: bazel_from_bazelversion
+        if: inputs.bazel_versions == ''
         run: echo "bazelversion=$(head -n 1 .bazelversion)" >> $GITHUB_OUTPUT
       - id: bazel_8
+        if: inputs.bazel_versions == ''
         run: echo "bazelversion=8.0.0" >> $GITHUB_OUTPUT
     outputs:
-      # Will look like ["<version from .bazelversion>", "x.y.z"]
-      bazelversions: ${{ toJSON(steps.*.outputs.bazelversion) }}
+      bazelversions: ${{ inputs.bazel_versions != '' && inputs.bazel_versions || toJSON(steps.*.outputs.bazelversion) }}
+
+  matrix-prep-exclude:
+    # Prepares the 'exclude' axis of the test matrix
+    runs-on: ubuntu-latest
+    needs:
+      - matrix-prep-bazelversion
+    steps:
+      - id: exclude
+        env:
+          INPUT_EXCLUDE: ${{ inputs.exclude }}
+          BAZEL_VERSIONS: ${{ needs.matrix-prep-bazelversion.outputs.bazelversions }}
+        run: |
+          exclude="$(
+            jq \
+              --compact-output \
+              --null-input \
+              --argjson input_exclude "$INPUT_EXCLUDE" \
+              --argjson bazel_versions "$BAZEL_VERSIONS" '
+                def major:
+                  (capture("^(?<major>[0-9]+)") | .major | tonumber)? // -1;
+                ($bazel_versions
+                  | map(select((. | major) >= 9) | {bazelversion: ., bzlmodEnabled: false})) as $bazel9_or_later
+                | ($input_exclude + $bazel9_or_later | unique)
+              '
+          )"
+          echo "exclude=$exclude" >> "$GITHUB_OUTPUT"
+    outputs:
+      exclude: ${{ steps.exclude.outputs.exclude }}
 
   test:
     # The type of runner that the job will run on
@@ -95,6 +130,7 @@ jobs:
     needs:
       - matrix-prep-bazelversion
       - matrix-prep-os
+      - matrix-prep-exclude
 
     # Run bazel test in each workspace with each version of Bazel supported
     strategy:
@@ -104,14 +140,14 @@ jobs:
         bazelversion: ${{ fromJSON(needs.matrix-prep-bazelversion.outputs.bazelversions) }}
         folder: ${{ fromJSON(inputs.folders) }}
         bzlmodEnabled: [true, false]
-        exclude: ${{ fromJSON(inputs.exclude) }}
+        exclude: ${{ fromJSON(needs.matrix-prep-exclude.outputs.exclude) }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: bazel-contrib/setup-bazel@0.8.0
+      - uses: bazel-contrib/setup-bazel@083175551ceeceebc757ebee2127fde78840ca77 # 0.18.0
         with:
           repository-cache: ${{ inputs.mount_bazel_caches }}
           bazelrc: |
@@ -135,7 +171,7 @@ jobs:
         # Checks for the existence of test.sh in the folder. Downstream steps can use
         # steps.has_test_sh.outputs.files_exists as a conditional.
         id: has_test_sh
-        uses: andstor/file-existence-action@v3
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
         with:
           files: "${{ matrix.folder }}/test.sh"
 
