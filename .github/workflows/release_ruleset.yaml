@@ -187,7 +187,7 @@ jobs:
           artifact-ids: ${{ needs.attest.outputs.attestations-artifact-id }}
           path: attestations
       - name: Release
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           prerelease: ${{ inputs.prerelease }}
           draft: ${{ inputs.draft }}
