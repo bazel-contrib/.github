@@ -45,15 +45,47 @@ on:
         default: "bazel test //..."
         description: |
           Bazel test command that may be overridden to set custom flags and targets.
-          The `--enable_bzlmod={true,false}`, `--disk_cache=~/.cache/bazel-disk-cache`,
-          and `--repository_cache=~/.cache/bazel-repository-cache` flags are
-          automatically appended to the command.
+          The `--enable_bzlmod={true,false}` flag and Bazel cache flags are
+          configured automatically.
         type: string
       mount_bazel_caches:
         default: true
         description: |
           Whether to enable caching in the bazel-contrib/setup-bazel action.
         type: boolean
+      bazelisk_cache:
+        default: true
+        description: |
+          Whether to cache Bazelisk downloads when mount_bazel_caches is enabled.
+        type: boolean
+      disk_cache:
+        default: "true"
+        description: |
+          Whether to enable Bazel disk caching when mount_bazel_caches is enabled.
+          String values are passed through to setup-bazel as cache key discriminators.
+        type: string
+      external_cache:
+        default: "true"
+        description: |
+          Whether to cache external repositories when mount_bazel_caches is enabled.
+          String values are passed through to setup-bazel.
+        type: string
+      repository_cache:
+        default: "true"
+        description: |
+          Whether to enable Bazel repository caching when mount_bazel_caches is enabled.
+          String values are passed through to setup-bazel as cache key files.
+        type: string
+      cache_save:
+        default: true
+        description: |
+          Whether to save restored caches after the run. Pull request events never save caches.
+        type: boolean
+      cache_version:
+        default: "1"
+        description: |
+          Version suffix for setup-bazel cache keys.
+        type: string
 
 jobs:
   # matrix-prep-* steps generate JSON used to create a dynamic actions matrix.
@@ -149,7 +181,12 @@ jobs:
 
       - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
         with:
-          repository-cache: ${{ inputs.mount_bazel_caches }}
+          bazelisk-cache: ${{ inputs.mount_bazel_caches && inputs.bazelisk_cache }}
+          disk-cache: ${{ inputs.mount_bazel_caches && inputs.disk_cache != 'false' && (inputs.disk_cache == 'true' && format('bazel-{0}', matrix.bazelversion) || inputs.disk_cache) }}
+          external-cache: ${{ inputs.mount_bazel_caches && inputs.external_cache != 'false' && inputs.external_cache }}
+          repository-cache: ${{ inputs.mount_bazel_caches && inputs.repository_cache != 'false' && inputs.repository_cache }}
+          cache-save: ${{ inputs.mount_bazel_caches && inputs.cache_save }}
+          cache-version: ${{ inputs.cache_version }}
           bazelrc: |
             common --announce_rc
             common --color=yes
