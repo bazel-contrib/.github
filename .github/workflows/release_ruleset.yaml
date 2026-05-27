@@ -71,6 +71,11 @@ on:
           Controls the like-named setting on https://github.com/softprops/action-gh-release#inputs
           The output of release_prep.sh will be pre-pended to the automatically generated notes.
         type: boolean
+      previous_tag:
+        description: |
+          The base tag to compare against when automatically generating release notes.
+          By default, https://github.com/softprops/action-gh-release will let GitHub choose the base.
+        type: string
       tag_name:
         description: |
           The tag which is being released.
@@ -193,6 +198,7 @@ jobs:
           draft: ${{ inputs.draft }}
           # Use GH feature to populate the changelog automatically
           generate_release_notes: ${{ inputs.generate_release_notes }}
+          previous_tag: ${{ inputs.previous_tag }}
           body_path: release_notes/release_notes.txt
           fail_on_unmatched_files: true
           tag_name: ${{ inputs.tag_name }}
