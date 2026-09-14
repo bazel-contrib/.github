@@ -115,12 +115,14 @@ jobs:
         with:
           name: release_files
           path: ${{ inputs.release_files }}
+          if-no-files-found: error
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         id: upload-release-notes
         with:
           name: release_notes
           path: release_notes.txt
+          if-no-files-found: error
 
   attest:
     needs: build
