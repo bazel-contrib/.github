@@ -44,7 +44,7 @@ on:
       #     Release notes are expected to be outputted to stdout.
       #   type: string
       bazel_test_command:
-        default: "bazel test //..."
+        default: "bazel test --test_output=errors //..."
         description: |
           Bazel test command that may be overridden to set custom flags and targets.
           The --disk_cache=~/.cache/bazel-disk-cache --repository_cache=~/.cache/bazel-repository-cache flags are
